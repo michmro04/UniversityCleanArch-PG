@@ -13,7 +13,7 @@ Console.InputEncoding = Encoding.UTF8;
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureLogging(logging =>
     {
-        // Wyciszenie logów technicznych SQL w konsoli, aby interfejs był czytelny
+        //czyszczenie startowych logów sql
         logging.ClearProviders();
     })
     .ConfigureServices((_, services) =>
@@ -28,7 +28,6 @@ using IHost host = Host.CreateDefaultBuilder(args)
     })
     .Build();
 
-// Automatyczna migracja przy starcie aplikacji (Wymóg Części 3 pkt 5 oraz Scenariusza 1)
 await using (var initScope = host.Services.CreateAsyncScope())
 {
     var db = initScope.ServiceProvider.GetRequiredService<UniversityDbContext>();
@@ -95,55 +94,46 @@ while (dziala)
     }
     catch (ArgumentException ex)
     {
-        WypiszKolor($"[BŁĄD WALIDACJI DOMENOWEJ]: {ex.Message}", ConsoleColor.Red);
+        WypiszKolor($"Błąd walidacji domenowej: {ex.Message}", ConsoleColor.Red);
     }
     catch (Exception ex)
     {
-        WypiszKolor($"[BŁĄD OPERACJI]: {ex.Message}", ConsoleColor.Red);
-    }
-
-    if (dziala)
-    {
-        Console.WriteLine("\nNaciśnij dowolny klawisz, aby wrócić do menu...");
-        Console.ReadKey(true);
+        WypiszKolor($"Błąd operacji: {ex.Message}", ConsoleColor.Red);
     }
 }
 
-// =============================================================================
-// FUNKCJE OBSŁUGI MENU UI
-// =============================================================================
 
 static void WyswietlNaglowekMenu()
 {
+    WypiszKolor("\n======================================================================", ConsoleColor.Cyan);
+    WypiszKolor("                           UniversityCleanArch", ConsoleColor.Cyan);
     WypiszKolor("======================================================================", ConsoleColor.Cyan);
-    WypiszKolor("   SYSTEM ZARZĄDZANIA UCZELNIĄ - UNIVERSITY CLEAN ARCH (EF CORE)      ", ConsoleColor.Cyan);
-    WypiszKolor("======================================================================", ConsoleColor.Cyan);
-    Console.WriteLine(" 1.  [Bogus] Wygeneruj świeży zestaw danych testowych");
-    Console.WriteLine(" 2.  [Odczyt] Lista studentów (Adres VO + Shadow Property + Promotor)");
-    Console.WriteLine(" 3.  [Odczyt] Lista profesorów (Gabinet + Kursy + Dyplomanci - SplitQuery)");
-    Console.WriteLine(" 4.  [Odczyt] Lista kursów i ich wymagań wstępnych (Prerequisites)");
-    Console.WriteLine(" 5.  [Liczniki] Tabela LicznikiIndeksow + dodanie nowego prefiksu (np. 'D')");
-    Console.WriteLine(" 6.  [CRUD] Dodaj nowego studenta (test licznika 'S' i walidacji Adresu)");
-    Console.WriteLine(" 7.  [CRUD] Edytuj studenta (test aktualizacji Shadow Property)");
-    Console.WriteLine(" 8.  [CRUD] Dodaj lub edytuj profesora");
-    Console.WriteLine(" 9.  [Usuwanie] Usuń studenta po ID/Indeksie (test cofania licznika 'S')");
-    Console.WriteLine(" 10. [Usuwanie] Usuń profesora po ID/Indeksie (test SetNull na magistrancie)");
-    Console.WriteLine(" 11. [LINQ] Uruchom 3 zaawansowane zapytania analityczne");
     Console.WriteLine(" 0.  Wyjście");
+    Console.WriteLine(" 1.  Wygeneruj świeży zestaw danych testowych");
+    Console.WriteLine(" 2.  Lista studentów");
+    Console.WriteLine(" 3.  Lista profesorów");
+    Console.WriteLine(" 4.  Lista kursów i ich wymagań wstępnych");
+    Console.WriteLine(" 5.  Tabela LicznikiIndeksow + dodanie nowego prefiksu");
+    Console.WriteLine(" 6.  Dodaj nowego studenta");
+    Console.WriteLine(" 7.  Edytuj studenta");
+    Console.WriteLine(" 8.  Dodaj lub edytuj profesora");
+    Console.WriteLine(" 9.  Usuń studenta po ID/Indeksie");
+    Console.WriteLine(" 10. Usuń profesora po ID/Indeksie");
+    Console.WriteLine(" 11. Uruchom 3 zaawansowane zapytania analityczne");
     Console.WriteLine("----------------------------------------------------------------------");
 }
 
 static async Task ObsluzGeneratorBogusAsync(UniversityBogusGenerator generator, UniversityService service)
 {
-    WypiszKolor("Trwa generowanie danych uczelnianych przez bibliotekę Bogus...", ConsoleColor.Yellow);
+    WypiszKolor("Generowanie danych uczelnianych przez bibliotekę Bogus", ConsoleColor.Yellow);
     await generator.WygenerujDaneTestoweAsync();
-    WypiszKolor("Pomyślnie wygenerowano dane testowe z użyciem transakcyjnego serwisu numeracji!", ConsoleColor.Green);
+    WypiszKolor(" - Dane zostały wygenerowane pomyślnie.", ConsoleColor.Green);
 
     Console.WriteLine("\nAktualny stan liczników po wygenerowaniu danych:");
     var liczniki = await service.PobierzLicznikiAsync();
     foreach (var l in liczniki)
     {
-        Console.WriteLine($" -> Prefiks '{l.Prefix}': AktualnaWartosc = {l.AktualnaWartosc}");
+        Console.WriteLine($" - Prefiks '{l.Prefix}': AktualnaWartosc = {l.AktualnaWartosc}");
     }
 }
 
@@ -152,22 +142,31 @@ static async Task WyswietlStudentowAsync(UniversityService service)
     var studenci = await service.PobierzStudentowZShadowPropertyAsync();
     if (!studenci.Any())
     {
-        WypiszKolor("Brak studentów w bazie danych. Uruchom najpierw generator (Opcja 1).", ConsoleColor.Yellow);
+        WypiszKolor("Brak studentów w bazie danych", ConsoleColor.Yellow);
         return;
     }
 
-    WypiszKolor($"=== LISTA STUDENTÓW (Łącznie: {studenci.Count}) ===", ConsoleColor.Green);
+    WypiszKolor($" - Lista studentów (Łącznie: {studenci.Count}) - ", ConsoleColor.Green);
+    
+    Console.WriteLine("===INŻ===");
     foreach (var s in studenci)
     {
-        var typ = s.CzyMagistrant ? "MAGISTRANT" : "INŻYNIERSKI";
-        Console.WriteLine($"[{s.IndeksUczelniany}] (ID: {s.Id}) {s.Imie} {s.Nazwisko} | Rok: {s.RokStudiow} | Typ: {typ}");
-        Console.WriteLine($"    Adres: {s.Adres}");
-        Console.WriteLine($"    OstatniaModyfikacja (Shadow Prop): {s.OstatniaModyfikacja:yyyy-MM-dd HH:mm:ss.fff} UTC");
+        if (!s.CzyMagistrant)
+        {
+            Console.Write($"[{s.IndeksUczelniany}] (ID: {s.Id}) {s.Imie} {s.Nazwisko} | Rok: {s.RokStudiow} | Typ: inż | ");
+            Console.WriteLine($"adres: {s.Adres} | zmodyfikowano: {s.OstatniaModyfikacja:yyyy-MM-dd HH:mm:ss.fff}");
+        }
+    }
 
+    Console.WriteLine("\n===MGR===");
+    foreach (var s in studenci)
+    {
         if (s.CzyMagistrant)
         {
             var promotor = s.PromotorOpis ?? "BRAK PROMOTORA (NULL)";
-            WypiszKolor($"    Praca dyplomowa: \"{s.TematPracyDyplomowej}\" | Promotor: {promotor}", ConsoleColor.DarkCyan);
+            Console.Write($"[{s.IndeksUczelniany}] (ID: {s.Id}) {s.Imie} {s.Nazwisko} | Rok: {s.RokStudiow} | Typ: mgr | ");
+            Console.WriteLine($"adres: {s.Adres} | zmodyfikowano: {s.OstatniaModyfikacja:yyyy-MM-dd HH:mm:ss.fff}");
+            Console.WriteLine($"     praca dyplomowa: \"{s.TematPracyDyplomowej}\" | Promotor: {promotor}");
         }
     }
 }
@@ -181,22 +180,22 @@ static async Task WyswietlProfesorowAsync(UniversityService service)
         return;
     }
 
-    WypiszKolor($"=== LISTA PROFESORÓW (Łącznie: {dane.Count}) ===", ConsoleColor.Green);
+    WypiszKolor($" - Profesorowie (Łącznie: {dane.Count}) - ", ConsoleColor.Green);
     foreach (var (p, modyfikacja) in dane)
     {
         var gabinet = p.Gabinet != null ? $"{p.Gabinet.Budynek}, pok. {p.Gabinet.NumerPokoju}" : "Brak gabinetu";
-        Console.WriteLine($"[{p.IndeksUczelniany}] (ID: {p.Id}) {p.TytulNaukowy} {p.Imie} {p.Nazwisko} | Gabinet: {gabinet}");
-        Console.WriteLine($"    Adres: {p.AdresZamieszkania} | OstatniaModyfikacja: {modyfikacja:yyyy-MM-dd HH:mm:ss} UTC");
+        Console.Write($"[{p.IndeksUczelniany}] (ID: {p.Id}) {p.TytulNaukowy} {p.Imie} {p.Nazwisko} | Gabinet: {gabinet} | ");
+        Console.WriteLine($"adres: {p.AdresZamieszkania} | zmodyfikowano: {modyfikacja:yyyy-MM-dd HH:mm:ss}");
 
         var kursy = p.ProwadzoneKursy.Any()
             ? string.Join(", ", p.ProwadzoneKursy.Select(k => $"{k.KodKursu} ({k.Nazwa})"))
             : "Brak prowadzonych kursów";
-        Console.WriteLine($"    Prowadzone kursy ({p.ProwadzoneKursy.Count}): {kursy}");
+        Console.WriteLine($"    prowadzone kursy ({p.ProwadzoneKursy.Count}): {kursy}");
 
         var dyplomanci = p.Dyplomanci.Any()
             ? string.Join(", ", p.Dyplomanci.Select(d => $"{d.IndeksUczelniany} {d.Imie} {d.Nazwisko}"))
             : "Brak przypisanych dyplomantów";
-        Console.WriteLine($"    Dyplomanci ({p.Dyplomanci.Count}): {dyplomanci}");
+        Console.WriteLine($"    dyplomanci ({p.Dyplomanci.Count}): {dyplomanci}");
     }
 }
 
@@ -209,7 +208,7 @@ static async Task WyswietlKursyAsync(UniversityService service)
         return;
     }
 
-    WypiszKolor($"=== SIATKA KURSÓW I WYMAGAŃ WSTĘPNYCH (Łącznie: {kursy.Count}) ===", ConsoleColor.Green);
+    WypiszKolor($" - Kursy i wymagania wstępne (Łącznie: {kursy.Count}) - ", ConsoleColor.Green);
     foreach (var k in kursy)
     {
         var prerekwizyty = k.WymaganiaWstepne.Any()
@@ -225,7 +224,7 @@ static async Task WyswietlKursyAsync(UniversityService service)
 static async Task ZarzadzajLicznikamiAsync(UniversityService service)
 {
     var liczniki = await service.PobierzLicznikiAsync();
-    WypiszKolor("=== TABELA LICZNIKI INDEKSÓW ===", ConsoleColor.Green);
+    WypiszKolor(" - Licznik Indeksów - ", ConsoleColor.Green);
     foreach (var l in liczniki)
     {
         Console.WriteLine($" -> Prefiks: '{l.Prefix}' | AktualnaWartosc: {l.AktualnaWartosc}");
@@ -250,7 +249,7 @@ static async Task ZarzadzajLicznikamiAsync(UniversityService service)
 
 static async Task DodajStudentaInteraktywnieAsync(UniversityService service)
 {
-    WypiszKolor("=== DODAWANIE NOWEGO STUDENTA ===", ConsoleColor.Green);
+    WypiszKolor(" - Dodawanie nowego studenta - ", ConsoleColor.Green);
     Console.Write("Imię: ");
     var imie = Console.ReadLine() ?? "";
     Console.Write("Nazwisko: ");
@@ -263,10 +262,9 @@ static async Task DodajStudentaInteraktywnieAsync(UniversityService service)
     var ulica = Console.ReadLine() ?? "";
     Console.Write("Miasto: ");
     var miasto = Console.ReadLine() ?? "";
-    Console.Write("Kod pocztowy (format XX-XXX, np. 80-233; wpisz np. '123' aby przetestować wyjątek walidacji): ");
+    Console.Write("Kod pocztowy (format XX-XXX, np. 80-233): ");
     var kod = Console.ReadLine() ?? "";
 
-    // Walidacja w konstruktorze Value Object Adres!
     var adres = new Adres(ulica, miasto, kod);
 
     Console.Write("Czy to student studiów magisterskich? (T/N): ");
@@ -275,24 +273,24 @@ static async Task DodajStudentaInteraktywnieAsync(UniversityService service)
     if (czyMagister)
     {
         Console.Write("Temat pracy dyplomowej: ");
-        var temat = Console.ReadLine() ?? "Analiza systemów informatycznych";
+        var temat = Console.ReadLine() ?? "null";
         Console.Write("ID promotora (opcjonalnie, wciśnij Enter aby pominąć): ");
         var promotorInput = Console.ReadLine();
         int? promotorId = int.TryParse(promotorInput, out var pid) ? pid : null;
 
         var m = await service.DodajStudentaMagisterskiegoAsync(imie, nazwisko, rok, adres, temat, promotorId);
-        WypiszKolor($"Dodano magistranta! Nadany indeks z transakcji: {m.IndeksUczelniany} (ID: {m.Id})", ConsoleColor.Green);
+        WypiszKolor($"Dodano magistranta. Nadany indeks z transakcji: {m.IndeksUczelniany} (ID: {m.Id})", ConsoleColor.Green);
     }
     else
     {
         var s = await service.DodajStudentaAsync(imie, nazwisko, rok, adres);
-        WypiszKolor($"Dodano studenta! Nadany indeks z transakcji: {s.IndeksUczelniany} (ID: {s.Id})", ConsoleColor.Green);
+        WypiszKolor($"Dodano studenta. Nadany indeks z transakcji: {s.IndeksUczelniany} (ID: {s.Id})", ConsoleColor.Green);
     }
 }
 
 static async Task EdytujStudentaInteraktywnieAsync(UniversityService service)
 {
-    WypiszKolor("=== EDYCJA STUDENTA (AKTUALIZACJA SHADOW PROPERTY) ===", ConsoleColor.Green);
+    WypiszKolor(" - Edycja studenta - ", ConsoleColor.Green);
     Console.Write("Podaj ID studenta do edycji: ");
     if (!int.TryParse(Console.ReadLine(), out var id))
     {
@@ -318,12 +316,12 @@ static async Task EdytujStudentaInteraktywnieAsync(UniversityService service)
     var nowyAdres = new Adres(ulica, miasto, kod);
     await service.AktualizujStudentaAsync(id, imie, nazwisko, rok, nowyAdres);
 
-    WypiszKolor($"Zaktualizowano dane studenta ID={id} oraz znacznik czasu 'OstatniaModyfikacja'!", ConsoleColor.Green);
+    WypiszKolor($"Zaktualizowano dane studenta ID={id}.", ConsoleColor.Green);
 }
 
 static async Task DodajLubEdytujProfesoraInteraktywnieAsync(UniversityService service)
 {
-    Console.Write("Wybierz akcję: [D]odaj nowego profesora / [E]dytuj istniejącego: ");
+    Console.Write("Wybierz akcję: Dodaj nowego profesora [D] / Edytuj istniejącego [E]: ");
     var akcja = Console.ReadLine()?.Trim().ToUpperInvariant();
 
     if (akcja == "E")
@@ -345,7 +343,7 @@ static async Task DodajLubEdytujProfesoraInteraktywnieAsync(UniversityService se
         var kod = Console.ReadLine() ?? "";
 
         await service.AktualizujProfesoraAsync(id, imie, nazwisko, tytul, new Adres(ulica, miasto, kod));
-        WypiszKolor($"Zaktualizowano profesora ID={id} oraz jego Shadow Property 'OstatniaModyfikacja'.", ConsoleColor.Green);
+        WypiszKolor($"Zaktualizowano profesora ID={id}.", ConsoleColor.Green);
     }
     else
     {
@@ -361,19 +359,19 @@ static async Task DodajLubEdytujProfesoraInteraktywnieAsync(UniversityService se
         var miasto = Console.ReadLine() ?? "";
         Console.Write("Kod pocztowy (XX-XXX): ");
         var kod = Console.ReadLine() ?? "";
-        Console.Write("Numer pokoju gabinetu (np. EA-312): ");
+        Console.Write("Numer pokoju gabinetu: ");
         var pokoj = Console.ReadLine();
         Console.Write("Budynek (np. WETI A): ");
         var budynek = Console.ReadLine();
 
         var p = await service.DodajProfesoraAsync(imie, nazwisko, tytul, new Adres(ulica, miasto, kod), pokoj, budynek);
-        WypiszKolor($"Dodano profesora! Nadany indeks: {p.IndeksUczelniany} (ID: {p.Id})", ConsoleColor.Green);
+        WypiszKolor($"Dodano profesora. Nadany indeks: {p.IndeksUczelniany} (ID: {p.Id})", ConsoleColor.Green);
     }
 }
 
 static async Task UsunStudentaInteraktywnieAsync(UniversityService service)
 {
-    WypiszKolor("=== USUWANIE STUDENTA (TEST COFANIA LICZNIKA 'S') ===", ConsoleColor.Green);
+    WypiszKolor(" - Usuwanie studenta - ", ConsoleColor.Green);
     Console.Write("Podaj ID lub IndeksUczelniany studenta (np. S1015 lub S1005): ");
     var wejscie = Console.ReadLine() ?? "";
 
@@ -383,7 +381,7 @@ static async Task UsunStudentaInteraktywnieAsync(UniversityService service)
 
 static async Task UsunProfesoraInteraktywnieAsync(UniversityService service)
 {
-    WypiszKolor("=== USUWANIE PROFESORA (TEST COFANIA LICZNIKA 'P' ORAZ SET NULL) ===", ConsoleColor.Green);
+    WypiszKolor(" - Usuwanie profesora - ", ConsoleColor.Green);
     Console.Write("Podaj ID lub IndeksUczelniany profesora (np. P106 lub P101): ");
     var wejscie = Console.ReadLine() ?? "";
 
@@ -393,26 +391,23 @@ static async Task UsunProfesoraInteraktywnieAsync(UniversityService service)
 
 static async Task UruchomZapytaniaAnalityczneAsync(UniversityQueryService queryService, UniversityService universityService)
 {
-    WypiszKolor("======================================================================", ConsoleColor.Cyan);
-    WypiszKolor("   RAPORTY ANALITYCZNE LINQ (AsNoTracking + Projekcja DTO)            ", ConsoleColor.Cyan);
-    WypiszKolor("======================================================================", ConsoleColor.Cyan);
+    WypiszKolor(" - Raporty analityczne Linq - ", ConsoleColor.Cyan);
 
     // ZAPYTANIE 1
-    WypiszKolor("\n[Zapytanie 1] Profesor z największą łączną liczbą zapisanych studentów:", ConsoleColor.Green);
+    WypiszKolor("\nZapytanie 1: Profesor z największą łączną liczbą zapisanych studentów:", ConsoleColor.Green);
     var topProf = await queryService.PobierzProfesoraZNajwiekszaLiczbaStudentowAsync();
     if (topProf != null)
     {
-        Console.WriteLine($" -> {topProf.TytulNaukowy} {topProf.Imie} {topProf.Nazwisko} ({topProf.IndeksUczelniany})");
-        Console.WriteLine($" -> Liczba prowadzonych kursów: {topProf.LiczbaProwadzonychKursow}");
-        Console.WriteLine($" -> Łączna liczba zapisanych studentów: {topProf.LacznaLiczbaZapisanychStudentow}");
+        Console.WriteLine($" - {topProf.TytulNaukowy} {topProf.Imie} {topProf.Nazwisko} ({topProf.IndeksUczelniany})");
+        Console.WriteLine($" - Liczba prowadzonych kursów: {topProf.LiczbaProwadzonychKursow}");
+        Console.WriteLine($" - Łączna liczba zapisanych studentów: {topProf.LacznaLiczbaZapisanychStudentow}");
     }
     else
     {
-        Console.WriteLine(" -> Brak danych.");
+        Console.WriteLine(" - Brak danych.");
     }
 
-    // ZAPYTANIE 2
-    WypiszKolor("\n[Zapytanie 2] Średnia ocen (GPA) dla kursów na wybranym wydziale:", ConsoleColor.Green);
+    WypiszKolor("\nZapytanie 2: Średnia ocen (GPA) dla kursów na wybranym wydziale:", ConsoleColor.Green);
     var wydzialy = await universityService.PobierzWydzialyAsync();
     if (wydzialy.Any())
     {
@@ -430,12 +425,11 @@ static async Task UruchomZapytaniaAnalityczneAsync(UniversityQueryService queryS
         Console.WriteLine($"\nWyniki GPA dla wydziału ID={wydzialId}:");
         foreach (var k in kursyGpa)
         {
-            Console.WriteLine($" -> [{k.KodKursu}] {k.NazwaKursu,-42} | GPA: {k.SredniaOcenGpa:F2} | Ocenionych studentów: {k.LiczbaOcenionychStudentow}");
+            Console.WriteLine($" - {k.KodKursu} {k.NazwaKursu,-42} | GPA: {k.SredniaOcenGpa:F2} | Ocenionych studentów: {k.LiczbaOcenionychStudentow}");
         }
     }
 
-    // ZAPYTANIE 3
-    WypiszKolor("\n[Zapytanie 3] Ranking studentów z najtrudniejszym planem zajęć (Unikalne ECTS z prerekwizytami):", ConsoleColor.Green);
+    WypiszKolor("\nZapytanie 3: Ranking studentów z najtrudniejszym planem zajęć:", ConsoleColor.Green);
     var ranking = await queryService.PobierzRankingNajtrudniejszychPlanowAsync(5);
     int miejsce = 1;
     foreach (var st in ranking)
