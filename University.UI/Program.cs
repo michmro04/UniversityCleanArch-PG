@@ -163,7 +163,7 @@ static async Task WyswietlStudentowAsync(UniversityService service)
     {
         if (s.CzyMagistrant)
         {
-            var promotor = s.PromotorOpis ?? "BRAK PROMOTORA (NULL)";
+            var promotor = s.PromotorOpis ?? "Brak promotora (null)";
             Console.Write($"[{s.IndeksUczelniany}] (ID: {s.Id}) {s.Imie} {s.Nazwisko} | Rok: {s.RokStudiow} | Typ: mgr | ");
             Console.WriteLine($"adres: {s.Adres} | zmodyfikowano: {s.OstatniaModyfikacja:yyyy-MM-dd HH:mm:ss.fff}");
             Console.WriteLine($"     praca dyplomowa: \"{s.TematPracyDyplomowej}\" | Promotor: {promotor}");
