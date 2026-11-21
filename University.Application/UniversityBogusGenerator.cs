@@ -20,7 +20,6 @@ public class UniversityBogusGenerator
         int liczbaStudentowInzynierskich = 10,
         int liczbaStudentowMagisterskich = 5)
     {
-        // 1. Oczyszczenie istniejących danych i reset liczników przed nowym seedowaniem
         _context.Zapisy.RemoveRange(await _context.Zapisy.ToListAsync());
 
         var istniejaceKursy = await _context.Kursy
@@ -45,119 +44,81 @@ public class UniversityBogusGenerator
         Randomizer.Seed = new Random(2026);
         var faker = new Faker("pl");
 
-        // 2. Generowanie Wydziałów
-        var nazwyWydzialow = new[]
-        {
-            "Wydział Elektroniki, Telekomunikacji i Informatyki",
-            "Wydział Elektrotechniki i Automatyki",
-            "Wydział Fizyki Technicznej i Matematyki Stosowanej"
-        };
-
         var wydzialy = new List<Wydzial>();
-        foreach (var nazwa in nazwyWydzialow)
+        for (int i = 1; i <= 3; i++)
         {
-            wydzialy.Add(await _universityService.DodajWydzialAsync(nazwa));
+            wydzialy.Add(await _universityService.DodajWydzialAsync($"Wydział {i}"));
         }
 
-        // 3. Generowanie Profesorów z Gabinetami (przez UniversityService -> licznik "P" + konstruktor Adres)
         var tytuly = new[] { "dr inż.", "dr hab. inż.", "prof. dr hab. inż." };
-        var budynki = new[] { "WETI A", "WETI B", "Gmach Główny" };
         var profesorowie = new List<Profesor>();
 
-        for (int i = 0; i < liczbaProfesorow; i++)
+        for (int i = 1; i <= liczbaProfesorow; i++)
         {
             var adres = new Adres(
-                faker.Address.StreetAddress(),
-                faker.Address.City(),
+                $"Ulica {i}",
+                $"Miasto {faker.Random.Int(1, 5)}",
                 faker.Address.ZipCode("##-###"));
 
-            var numerPokoju = $"EA-{faker.Random.Int(101, 450)}";
-            var budynek = faker.PickRandom(budynki);
-
             var profesor = await _universityService.DodajProfesoraAsync(
-                faker.Name.FirstName(),
-                faker.Name.LastName(),
+                "Prowadzący",
+                $"{i}",
                 faker.PickRandom(tytuly),
                 adres,
-                numerPokoju,
-                budynek);
+                $"Sala {i}",
+                $"Budynek {faker.Random.Int(1, 3)}");
 
             profesorowie.Add(profesor);
         }
 
-        // 4. Generowanie Studentów Inżynierskich (przez UniversityService -> licznik "S" + konstruktor Adres)
         var wszyscyStudenci = new List<Student>();
 
-        for (int i = 0; i < liczbaStudentowInzynierskich; i++)
+        for (int i = 1; i <= liczbaStudentowInzynierskich; i++)
         {
             var adres = new Adres(
-                faker.Address.StreetAddress(),
-                faker.Address.City(),
+                $"Ulica {i}",
+                $"Miasto {faker.Random.Int(1, 5)}",
                 faker.Address.ZipCode("##-###"));
 
             var student = await _universityService.DodajStudentaAsync(
-                faker.Name.FirstName(),
-                faker.Name.LastName(),
+                "Student",
+                $"{i}",
                 faker.Random.Int(1, 3),
                 adres);
 
             wszyscyStudenci.Add(student);
         }
 
-        // 5. Generowanie Studentów Magisterskich z Promotorami (przez UniversityService -> licznik "S")
-        var tematyPrac = new[]
+        for (int i = 1; i <= liczbaStudentowMagisterskich; i++)
         {
-            "Optymalizacja zapytań w systemach rozproszonych z użyciem EF Core",
-            "Analiza algorytmów przepływowych w sieciach wielotowarowych",
-            "Zastosowanie głębokich sieci grafowych w systemach rekomendacyjnych",
-            "Projekt i implementacja systemu czasu rzeczywistego dla pojazdów podwodnych",
-            "Architektura mikroserwisowa w chmurze obliczeniowej o wysokiej dostępności"
-        };
-
-        for (int i = 0; i < liczbaStudentowMagisterskich; i++)
-        {
+            int numerStudenta = liczbaStudentowInzynierskich + i;
             var adres = new Adres(
-                faker.Address.StreetAddress(),
-                faker.Address.City(),
+                $"Ulica {numerStudenta}",
+                $"Miasto {faker.Random.Int(1, 5)}",
                 faker.Address.ZipCode("##-###"));
 
             var promotor = faker.PickRandom(profesorowie);
-            var temat = tematyPrac[i % tematyPrac.Length];
 
             var magistrant = await _universityService.DodajStudentaMagisterskiegoAsync(
-                faker.Name.FirstName(),
-                faker.Name.LastName(),
+                "Student",
+                $"{numerStudenta}",
                 faker.Random.Int(4, 5),
                 adres,
-                temat,
+                $"Temat pracy dyplomowej {i}",
                 promotor.Id);
 
             wszyscyStudenci.Add(magistrant);
         }
 
-        // 6. Generowanie Kursów oraz Wymagań Wstępnych (Self-Referencing N:M)
-        var definicjeKursow = new (string Kod, string Nazwa, int Ects, int WydzialIdx)[]
-        {
-            ("ETI-01", " Podstawy Programowania", 6, 0),
-            ("ETI-02", "Algorytmy i Struktury Danych", 6, 0),
-            ("ETI-03", "Bazy Danych", 5, 0),
-            ("ETI-04", "Programowanie Lokalnych Aplikacji (.NET)", 5, 0),
-            ("ETI-05", "Architektura Systemów Korporacyjnych", 6, 0),
-            ("WEIA-01", "Teoria Obwodów", 5, 1),
-            ("WEIA-02", "Systemy Wbudowane", 6, 1),
-            ("FTIMS-01", "Analiza Matematyczna", 6, 2),
-            ("FTIMS-02", "Metody Probabilistyczne i Statystyka", 4, 2)
-        };
-
         var kursy = new List<Kurs>();
-        foreach (var def in definicjeKursow)
+        for (int i = 1; i <= 9; i++)
         {
             var kurs = new Kurs
             {
-                KodKursu = def.Kod,
-                Nazwa = def.Nazwa.Trim(),
-                PunktyECTS = def.Ects,
-                WydzialId = wydzialy[def.WydzialIdx].Id,
+                KodKursu = $"KURS-0{i}",
+                Nazwa = $"Kurs {i}",
+                PunktyECTS = faker.Random.Int(4, 6),
+                WydzialId = wydzialy[(i - 1) % wydzialy.Count].Id,
                 ProwadzacyId = faker.PickRandom(profesorowie).Id
             };
             kursy.Add(kurs);
@@ -165,31 +126,23 @@ public class UniversityBogusGenerator
         }
         await _context.SaveChangesAsync();
 
-        // Konfiguracja wymagań wstępnych (w tym wspólnych prerekwizytów do przetestowania Zapytania 3!)
-        // ETI-02 (AiSD) wymaga ETI-01 (Podstawy Programowania) oraz FTIMS-01 (Analiza Matematyczna)
         kursy[1].WymaganiaWstepne.Add(kursy[0]);
         kursy[1].WymaganiaWstepne.Add(kursy[7]);
 
-        // ETI-03 (Bazy Danych) wymaga ETI-01 (Podstawy Programowania) -> wspólny prerekwizyt ETI-01!
         kursy[2].WymaganiaWstepne.Add(kursy[0]);
 
-        // ETI-04 (PLANET) wymaga ETI-02 (AiSD) oraz ETI-03 (Bazy Danych)
         kursy[3].WymaganiaWstepne.Add(kursy[1]);
         kursy[3].WymaganiaWstepne.Add(kursy[2]);
 
-        // ETI-05 (Architektura) wymaga ETI-03 (Bazy Danych) oraz ETI-04 (PLANET) -> wspólny prerekwizyt ETI-03!
         kursy[4].WymaganiaWstepne.Add(kursy[2]);
         kursy[4].WymaganiaWstepne.Add(kursy[3]);
 
-        // WEIA-02 wymaga WEIA-01
         kursy[6].WymaganiaWstepne.Add(kursy[5]);
 
-        // FTIMS-02 wymaga FTIMS-01
         kursy[8].WymaganiaWstepne.Add(kursy[7]);
 
         await _context.SaveChangesAsync();
 
-        // 7. Generowanie Zapisów na Kursy (Enrollment) z ocenami (oraz nullami przed wystawieniem oceny)
         var dopuszczalneOceny = new double?[] { 3.0, 3.5, 4.0, 4.5, 5.0, null };
         var zapisy = new List<Enrollment>();
 

@@ -24,9 +24,6 @@ public class UniversityService
         _context = context;
     }
 
-    // =========================================================================
-    // 1. ZARZĄDZANIE LICZNIKAMI INDEKSÓW (LicznikIndeksow)
-    // =========================================================================
 
     public async Task<List<LicznikIndeksow>> PobierzLicznikiAsync()
     {
@@ -61,10 +58,7 @@ public class UniversityService
         await _context.SaveChangesAsync();
     }
 
-    // =========================================================================
-    // 2. TWORZENIE STUDENTÓW I PROFESORÓW (Transakcja + Licznik + Shadow Prop)
-    // =========================================================================
-
+    
     public async Task<Student> DodajStudentaAsync(
         string imie,
         string nazwisko,
@@ -88,7 +82,6 @@ public class UniversityService
 
             _context.Studenci.Add(student);
 
-            // Ustawienie właściwości ukrytej (Shadow Property) przez ChangeTracker
             _context.Entry(student).Property("OstatniaModyfikacja").CurrentValue = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -130,7 +123,6 @@ public class UniversityService
 
             _context.StudenciMagisterscy.Add(magistrant);
 
-            // Ustawienie właściwości ukrytej (Shadow Property) przez ChangeTracker
             _context.Entry(magistrant).Property("OstatniaModyfikacja").CurrentValue = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -179,7 +171,6 @@ public class UniversityService
 
             _context.Profesorowie.Add(profesor);
 
-            // Ustawienie właściwości ukrytej (Shadow Property) przez ChangeTracker
             _context.Entry(profesor).Property("OstatniaModyfikacja").CurrentValue = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -194,10 +185,7 @@ public class UniversityService
         }
     }
 
-    // =========================================================================
-    // 3. AKTUALIZACJA (Update + aktualizacja Shadow Property)
-    // =========================================================================
-
+    
     public async Task AktualizujStudentaAsync(
         int studentId,
         string noweImie,
@@ -238,10 +226,7 @@ public class UniversityService
         await _context.SaveChangesAsync();
     }
 
-    // =========================================================================
-    // 4. USUWANIE W TRANSAKCJI (Warunkowe cofanie licznika + SetNull)
-    // =========================================================================
-
+    
     public async Task<(bool Sukces, string Komunikat)> UsunStudentaAsync(string idLubIndeks)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -297,8 +282,6 @@ public class UniversityService
             if (profesor == null)
                 return (false, $"Nie znaleziono profesora dla identyfikatora '{idLubIndeks}'.");
 
-            // Jeśli usuwany profesor prowadzi kursy, przepisujemy je innemu profesorowi (lub usuwamy, gdy brak innych),
-            // aby umożliwić bezbłędne usunięcie profesora i przetestowanie DeleteBehavior.SetNull na magistrantach.
             if (profesor.ProwadzoneKursy.Any())
             {
                 var zastepca = await _context.Profesorowie
@@ -344,10 +327,7 @@ public class UniversityService
         }
     }
 
-    // =========================================================================
-    // 5. ODCZYT DANYCH (w tym Shadow Property i AsSplitQuery) + POZOSTAŁY CRUD
-    // =========================================================================
-
+    
     public async Task<List<StudentWidokDto>> PobierzStudentowZShadowPropertyAsync()
     {
         return await _context.Studenci
@@ -377,7 +357,6 @@ public class UniversityService
 
     public async Task<List<(Profesor Profesor, DateTime OstatniaModyfikacja)>> PobierzProfesorowZSzczegolamiAsync()
     {
-        // Użycie .AsSplitQuery() zapobiega eksplozji kartezjańskiej przy ładowaniu kolekcji ProwadzoneKursy i Dyplomanci
         var profesorowie = await _context.Profesorowie
             .AsNoTracking()
             .Include(p => p.Gabinet)
@@ -445,10 +424,7 @@ public class UniversityService
         return kurs;
     }
 
-    // =========================================================================
-    // METODY POMOCNICZE
-    // =========================================================================
-
+    
     private async Task<LicznikIndeksow> PobierzLubUtworzLicznikWTransakcjiAsync(string prefix, int domyslnaWartoscBazowa)
     {
         var licznik = await _context.LicznikiIndeksow

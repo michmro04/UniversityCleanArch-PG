@@ -35,11 +35,7 @@ public class UniversityQueryService
         _context = context;
     }
 
-    /// <summary>
-    /// Zapytanie 1 [5 pkt]: Profesor z największą łączną liczbą zapisanych studentów
-    /// ze wszystkich prowadzonych przez niego kursów.
-    /// </summary>
-    public async Task<ProfesorTopStudenciDto?> PobierzProfesoraZNajwiekszaLiczbaStudentowAsync()
+      public async Task<ProfesorTopStudenciDto?> PobierzProfesoraZNajwiekszaLiczbaStudentowAsync()
     {
         return await _context.Profesorowie
             .AsNoTracking()
@@ -65,10 +61,6 @@ public class UniversityQueryService
             .FirstOrDefaultAsync();
     }
 
-    /// <summary>
-    /// Zapytanie 2 [5 pkt]: Średnia ocen (GPA) oraz liczba ocenionych studentów
-    /// dla wszystkich kursów na wybranym wydziale (tylko zapisy z Ocena != null).
-    /// </summary>
     public async Task<List<KursGpaDto>> PobierzSredniaOcenDlaWydzialuAsync(int wydzialId)
     {
         return await _context.Kursy
@@ -96,12 +88,7 @@ public class UniversityQueryService
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Zapytanie 3 [10 pkt]: Student z najtrudniejszym planem zajęć.
-    /// Suma punktów ECTS kursów, na które student jest zapisany ORAZ ich bezpośrednich
-    /// wymagań wstępnych (z pełną deduplikacją po stronie bazy danych).
-    /// </summary>
-    public async Task<List<StudentTrudnyPlanDto>> PobierzRankingNajtrudniejszychPlanowAsync(int topN = 5)
+   public async Task<List<StudentTrudnyPlanDto>> PobierzRankingNajtrudniejszychPlanowAsync(int topN = 5)
     {
         return await _context.Studenci
             .AsNoTracking()
@@ -112,11 +99,11 @@ public class UniversityQueryService
                 s.Nazwisko,
                 s.RokStudiow,
                 LiczbaZapisanychKursow = s.Zapisy.Count(),
-                // Liczba unikalnych kursów (zapisane + ich bezpośrednie prerekwizyty bez duplikatów)
+
                 LiczbaUnikalnychKursowZPrerekwizytami = _context.Kursy.Count(k =>
                     s.Zapisy.Any(z => z.KursId == k.Id) ||
                     s.Zapisy.SelectMany(z => z.Kurs.WymaganiaWstepne).Any(w => w.Id == k.Id)),
-                // Suma unikalnych punktów ECTS (każdy kurs z tabeli Kursy liczony maksymalnie raz)
+
                 LaczneUnikalnePunktyEcts = _context.Kursy
                     .Where(k =>
                         s.Zapisy.Any(z => z.KursId == k.Id) ||
