@@ -115,7 +115,6 @@ while (dziala)
 
 static void WyswietlNaglowekMenu()
 {
-    Console.Clear();
     WypiszKolor("======================================================================", ConsoleColor.Cyan);
     WypiszKolor("   SYSTEM ZARZĄDZANIA UCZELNIĄ - UNIVERSITY CLEAN ARCH (EF CORE)      ", ConsoleColor.Cyan);
     WypiszKolor("======================================================================", ConsoleColor.Cyan);
